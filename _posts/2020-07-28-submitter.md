@@ -21,8 +21,8 @@ Malware researchers often encounter some AV vendors fail to detect a malware sam
 
  ## Screenshot
 
- ![Desktop View](https://raw.githubusercontent.com/JerryLinLinLin/SampleMailSubmitter/master/screenshot/main_eng.png){: width="250" height="300"}
-_Full screen width and center alignment_
+ ![Desktop View](https://raw.githubusercontent.com/JerryLinLinLin/SampleMailSubmitter/master/screenshot/main_eng.png){: width="500" height="600"}
+_Sample Mail Submitter_
 
 ## [View Project](https://github.com/JerryLinLinLin/SampleMailSubmitter)
 
