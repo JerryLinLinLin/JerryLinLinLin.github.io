@@ -1,5 +1,5 @@
 ---
-title: About
+title: About ME
 icon: fas fa-info
 order: 4
 ---
