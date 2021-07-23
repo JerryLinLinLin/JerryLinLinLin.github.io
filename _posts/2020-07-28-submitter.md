@@ -19,10 +19,10 @@ Malware researchers often encounter some AV vendors fail to detect a malware sam
  - Send with one click
  - Multi-language support (English or Chinese Simplified)
 
+## Screenshot
 
 
  ![Desktop View](https://raw.githubusercontent.com/JerryLinLinLin/SampleMailSubmitter/master/screenshot/main_eng.png){: width="500" height="600" style="max-width: 70%" .normal}
-_Sample Mail Submitter_
 
 ## [View Project](https://github.com/JerryLinLinLin/SampleMailSubmitter)
 
