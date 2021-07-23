@@ -6,7 +6,7 @@ tags: [malware, fp, sample, threat]
 ---
 
 
-## Intro
+## Introduction
 
 Malware researchers often encounter some AV vendors fail to detect a malware sample, or falsely flags a normal file as being malicious. To build an automatic process of reporting the FP/FN files, I wrote a python tool for compressing samples and submitting to AV vendors via email.
 
