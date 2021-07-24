@@ -24,7 +24,7 @@ timezone: America/Chicago
 
 title: Jerry's Blog                          # the main title
 
-tagline: Good Good Study Day Day Up   # it will display as the sub-title
+tagline: Stay Secure   # it will display as the sub-title
 
 description: >-                        # used by seo meta and the atom feed
   A minimal, portfolio, sidebar,
