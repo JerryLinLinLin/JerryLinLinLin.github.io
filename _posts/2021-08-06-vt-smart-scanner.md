@@ -5,7 +5,7 @@ categories: [Project, AntiVirus]
 tags: [malware, scanner, vt]
 ---
 
-# Virus Total Smart Scanner
+## Introduction
 
 Virus Total Smart Scanner is a tool that can perform file scanning on any given directories. It has basic scan features and implementations, such as file type identification, rule match, cache management, and a clean user interface. 
 
