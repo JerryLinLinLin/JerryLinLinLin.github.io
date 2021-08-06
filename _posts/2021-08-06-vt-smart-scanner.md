@@ -78,7 +78,7 @@ I am not going to develop this project anymore. You are welcome to folk and deve
 
 ## License 
 
-See the [LICENSE](LICENSE) file for license rights and limitations (MIT).
+See the [LICENSE](https://github.com/JerryLinLinLin/VirusTotalSmartScanner/blob/master/LICENSE) file for license rights and limitations (MIT).
 
 ## [View Project](https://github.com/JerryLinLinLin/VirusTotalSmartScanner)
 
