@@ -1,7 +1,7 @@
 ---
 title: Virus Total Smart Scanner is Now Open Source
 date: 2021-08-06 00:00:00 -0500
-categories: [Project, AntiVirus]
+categories: [Project, Antivirus]
 tags: [malware, scanner, vt]
 ---
 
