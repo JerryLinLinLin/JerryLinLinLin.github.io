@@ -5,14 +5,6 @@ categories: [Project, Antivirus]
 tags: [malware, antivirus, reverse]
 ---
 
-## Table of Contents
-
-- [About](#about)
-- [Getting Started](#getting_started)
-- [Usage](#usage)
-- [List of Supported Vendors](#list_of_vendors)
-- [Contributing](https://github.com/JerryLinLinLin/AV_Detection_Dump/blob/master/CONTRIBUTING.md)
-
 ## About <a name = "about"></a>
 
 This project contains the CSV files of malware detection names from some antivirus products, and a PowerShell script for dumping the detection entries.
