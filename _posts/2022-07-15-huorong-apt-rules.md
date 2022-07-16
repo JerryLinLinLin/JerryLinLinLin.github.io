@@ -9,14 +9,6 @@ tags: [hips, huorong, antivirus]
 
 Huorong Advanced Threat Protection Rules are written based on [MITRE ATT\&CK™](https://attack.mitre.org/) and malware behavioral characteristics. It can detect, block and intercept all kinds of malware, [Advanced Persistent Threat (APT)](https://zh.m.wikipedia.org/zh-hans/%E9%AB%98%E7%BA%A7%E9%95%BF%E6%9C%9F%E5%A8%81%E8%83%81) attack vectors and attack paths, such as fileless attacks, exploit attacks, crypto-ransomware, etc. It is also highly scalable, maintainable and community developer friendly.
 
-- [Installation/Import Rules](#installimport-rules)
-- [Beginner's Guide](#beginners-guide)
-- [Rules Content](#rules-content)
-- [Rules Directory](#rules-directory)
-- [Automation Scripts](#automation-scripts)
-- [Changelog](#changelog)
-- [Feedback/Contribution](#feedbackcontribution)
-
 ## Install/Import rules
 
 Download the [latest rule version](https://github.com/JerryLinLinLin/Huorong-ATP-Rules/releases/latest), unzip the file to get `Rule.json`, `Auto.json`. Open the main interface of Huorong -> Protection Center -> Advanced Protection -> Custom Rules, click the switch to enable, click the item -> Enter the advanced protection settings, in the custom rule settings interface -> Import -> Select `Rule.json` and in the Automatic processing settings interface -> Import -> Select `Auto.json`.
