@@ -1,7 +1,7 @@
 # @Author: JerryLinLinLin
 # @Date:   2021-08-22 00:39:51
 # @Last Modified by:   JerryLinLinLin
-# @Last Modified time: 2023-06-28 00:28:21
+# @Last Modified time: 2023-06-28 00:31:58
 # The Site Configuration 
 
 # Import the theme
@@ -48,7 +48,7 @@ social:
   # Change to your full name.
   # It will be displayed as the default author of the posts and the copyright owner in the Footer
   name: Jerry Lin
-  email: JerryLin_000@proton.me         # change to your email address
+  email: alp00vials@icloud.com         # change to your email address
   links:
     # The first element serves as the copyright owner's link
     - https://twitter.com/username      # change to your twitter homepage
