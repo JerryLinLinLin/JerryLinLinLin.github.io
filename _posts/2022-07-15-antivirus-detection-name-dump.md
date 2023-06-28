@@ -23,7 +23,7 @@ To run the PowerShell script:
 
 3. Disable Self-Protection Module of AV if possible.
 
-Note: You may need to [updating the PowerShell](https://www.microsoft.com/download/details.aspx?id=54616) (v4.0 or later) and [.NET Framework](https://dotnet.microsoft.com/download/dotnet-framework) (v4.5 or later) in order to run this script in Windows 7.
+Note: You may need to [update the PowerShell](https://www.microsoft.com/download/details.aspx?id=54616) (v4.0 or later) and [.NET Framework](https://dotnet.microsoft.com/download/dotnet-framework) (v4.5 or later) in order to run this script in Windows 7.
 
 ## Usage <a name = "usage"></a>
 
