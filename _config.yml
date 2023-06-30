@@ -1,7 +1,7 @@
 # @Author: JerryLinLinLin
 # @Date:   2021-08-22 00:39:51
 # @Last Modified by:   JerryLinLinLin
-# @Last Modified time: 2023-06-28 00:31:58
+# @Last Modified time: 2023-06-29 22:34:45
 # The Site Configuration 
 
 # Import the theme
@@ -96,8 +96,8 @@ avatar: https://avatars.githubusercontent.com/u/61572787
 toc: true
 
 disqus:
-  # comments: true  # boolean type, the global switch for posts comments.
-  # shortname: 'jerrylinlinlin-github-io'   # Fill with your Disqus shortname. › https://help.disqus.com/en/articles/1717111-what-s-a-shortname
+  comments: true  # boolean type, the global switch for posts comments.
+  shortname: 'jerrylinlinlin-github-io'   # Fill with your Disqus shortname. › https://help.disqus.com/en/articles/1717111-what-s-a-shortname
 
 paginate: 10
 
