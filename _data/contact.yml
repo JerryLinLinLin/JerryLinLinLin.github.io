@@ -14,9 +14,9 @@
   icon: "fas fa-rss"
   noblank: true
 
-- type: notion
-  icon: "fa-regular fa-note-sticky"
-  url: "https://truthful-wallaby-d5f.notion.site/68597d45c9a34b2fa9a0ccbaec67820d?v=92d8ee2734374515a7ae2b658e63fbb0&pvs=4"
+# - type: notion
+#   icon: "fa-regular fa-note-sticky"
+#   url: "https://truthful-wallaby-d5f.notion.site/68597d45c9a34b2fa9a0ccbaec67820d?v=92d8ee2734374515a7ae2b658e63fbb0&pvs=4"
 # Uncomment and complete the url below to enable more contact options
 #
 # - type: mastodon
