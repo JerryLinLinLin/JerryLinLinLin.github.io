@@ -107,7 +107,7 @@ toc: true
 #   shortname: 'jerrylinlinlin-github-io'   # Fill with your Disqus shortname. › https://help.disqus.com/en/articles/1717111-what-s-a-shortname
 
 comments:
-  active: 'giscus' # The global switch for posts comments, e.g., 'disqus'.  Keep it empty means disable
+  provider: 'giscus' # The global switch for posts comments, e.g., 'disqus'.  Keep it empty means disable
   # The active options are as follows:
   disqus:
     shortname: 'jerrylinlinlin-github-io'
