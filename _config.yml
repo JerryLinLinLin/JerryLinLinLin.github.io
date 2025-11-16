@@ -1,26 +1,14 @@
-# @Author: JerryLinLinLin
-# @Date:   2021-08-22 00:39:51
-# @Last Modified by:   JerryLinLinLin
-# @Last Modified time: 2023-08-10 02:08:29
-# The Site Configuration 
+# The Site Configuration
 
 # Import the theme
 theme: jekyll-theme-chirpy
 
-# Only if your site type is GitHub Project sites and doesn't have a custom domain,
-# change below value to '/projectname'. 
-baseurl: ""
-
-# The language of the site layout › http://www.lingoes.net/en/translator/langcode.htm
-# Go to folder '_data/locales' to check the available language options
+# The language of the webpage › http://www.lingoes.net/en/translator/langcode.htm
+# If it has the same name as one of the files in folder `_data/locales`, the layout language will also be changed,
+# otherwise, the layout language will use the default value of 'en'.
 lang: en
 
-# The lang attribute of HTML › http://www.lingoes.net/en/translator/langcode.htm
-# We can specify a language different from the layout of the content.
-# If it is not assigned, the site will use the value of 'lang' instead.
-content_lang: ''
-
-# Change to your timezone › http://www.timezoneconverter.com/cgi-bin/findzone/findzone
+# Change to your timezone › https://zones.arilyn.cc
 timezone: America/Chicago
 
 # jekyll-seo-tag settings › https://github.com/jekyll/jekyll-seo-tag/blob/master/docs/usage.md
@@ -55,17 +43,38 @@ social:
     # - https://www.facebook.com/username
     # - https://www.linkedin.com/in/username
 
-google_site_verification: google_meta_tag_verification # change to your verification string
+# Site Verification Settings
+webmaster_verifications:
+  google: # fill in your Google verification code
+  bing: # fill in your Bing verification code
+  alexa: # fill in your Alexa verification code
+  yandex: # fill in your Yandex verification code
+  baidu: # fill in your Baidu verification code
+  facebook: # fill in your Facebook verification code
 
 # ↑ --------------------------
+# The end of `jekyll-seo-tag` settings
 
+# Web Analytics Settings
+analytics:
+  google:
+    id: # fill in your Google Analytics ID
+  goatcounter:
+    id: # fill in your GoatCounter ID
+  umami:
+    id: # fill in your Umami ID
+    domain: # fill in your Umami domain
+  matomo:
+    id: # fill in your Matomo ID
+    domain: # fill in your Matomo domain
+  cloudflare:
+    id: # fill in your Cloudflare Web Analytics token
+  fathom:
+    id: # fill in your Fathom Site ID
 
-google_analytics:
-  id: 'G-TSMF499YSS'              # fill in your Google Analytics ID
-  # Google Analytics pageviews report settings
-  pv:
-    proxy_endpoint:   # fill in the Google Analytics superProxy endpoint of Google App Engine
-    cache_path:       # the local PV cache data, friendly to visitors from GFW region
+# Page views settings
+pageviews:
+  provider: # now only supports 'goatcounter'
 
 # Prefer color scheme setting.
 #
@@ -123,19 +132,29 @@ assets:
     enabled: # boolean, keep empty means false
     # specify the Jekyll environment, empty means both
     # only works if `assets.self_host.enabled` is 'true'
-    env: # [development|production]
+    env: # [development | production]
 
 pwa:
-  enabled: true # the option for PWA feature
-
+  enabled: true # The option for PWA feature (installable)
+  cache:
+    enabled: true # The option for PWA offline cache
+    # Paths defined here will be excluded from the PWA cache.
+    # Usually its value is the `baseurl` of another website that
+    # shares the same domain name as the current website.
+    deny_paths:
+      # - "/example"  # URLs match `<SITE_URL>/example/*` will not be cached by the PWA
 
 paginate: 10
+
+# The base URL of your site
+baseurl: ""
 
 # ------------ The following options are not recommended to be modified ------------------
 
 kramdown:
+  footnote_backlink: "&#8617;&#xfe0e;"
   syntax_highlighter: rouge
-  syntax_highlighter_opts:   # Rouge Options › https://github.com/jneen/rouge#full-options
+  syntax_highlighter_opts: # Rouge Options › https://github.com/jneen/rouge#full-options
     css_class: highlight
     # default_lang: console
     span:
@@ -148,7 +167,6 @@ collections:
   tabs:
     output: true
     sort_by: order
-
 
 defaults:
   - scope:
@@ -171,14 +189,6 @@ defaults:
     values:
       layout: page
       permalink: /:title/
-  - scope:
-      path: assets/img/favicons
-    values:
-      swcache: true
-  - scope:
-      path: assets/js/dist
-    values:
-      swcache: true
 
 sass:
   style: compressed
@@ -195,13 +205,13 @@ compress_html:
 exclude:
   - "*.gem"
   - "*.gemspec"
+  - docs
   - tools
   - README.md
-  - CHANGELOG.md
   - LICENSE
-  - rollup.config.js
-  - node_modules
-  - package*.json
+  - purgecss.js
+  - "*.config.js"
+  - "package*.json"
 
 jekyll-archives:
   enabled: [categories, tags]
@@ -211,6 +221,3 @@ jekyll-archives:
   permalinks:
     tag: /tags/:name/
     category: /categories/:name/
-
-# Outdated configuration warning
-outdated: '-- Missing configuration options! --'
