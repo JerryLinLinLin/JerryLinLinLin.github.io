@@ -5,11 +5,11 @@ categories: [Project, Antivirus]
 tags: [malware, antivirus, reverse]
 ---
 
-## About <a name = "about"></a>
+## About
 
 This project contains the CSV files of malware detection names from some antivirus products, and a PowerShell script for dumping the detection entries.
 
-## Getting Started <a name = "getting_started"></a>
+## Getting Started
 
 Each subfolder contains dump CSV files with vendor's name and date. File name ends with BASE contains names from a vendor's scan engine, and others may be different depended on the sources of detection (e.g. behavior protection).
 
@@ -25,11 +25,11 @@ To run the PowerShell script:
 
 Note: You may need to [update the PowerShell](https://www.microsoft.com/download/details.aspx?id=54616) (v4.0 or later) and [.NET Framework](https://dotnet.microsoft.com/download/dotnet-framework) (v4.5 or later) in order to run this script in Windows 7.
 
-## Usage <a name = "usage"></a>
+## Usage
 
 `powershell -executionpolicy bypass -File .\AV_DUMP.ps1 <Name>`
 
-## List of Supported Vendors <a name = "list_of_vendors"></a>
+## List of Supported Vendors
 
 | Name         | PPL | Need to Disable SP | Detection Source | Accuracy |
 | ------------ | --- | ------------------ | ---------------- | -------- |
