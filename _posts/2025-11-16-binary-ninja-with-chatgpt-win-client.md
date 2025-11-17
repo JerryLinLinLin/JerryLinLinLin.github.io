@@ -91,7 +91,7 @@ This will:
 * Install the dependencies listed in `requirements.txt`.
 
 > Keep the `bridge` environment dedicated to this plugin. Mixing unrelated packages into the same environment can make debugging MCP issues much harder later.
-> {: .prompt-warning }
+{: .prompt-warning }
 
 ---
 
@@ -209,7 +209,7 @@ https://your-random-subdomain.ngrok-free.app
 We’ll use this URL in the ChatGPT connector configuration.
 
 > When ngrok is running, anything that can reach the public URL can talk to your MCP server. Only expose this from a trusted network, and avoid loading highly sensitive or proprietary binaries while experimenting.
-> {: .prompt-danger }
+{: .prompt-danger }
 
 ---
 
@@ -275,7 +275,7 @@ At this point, you have Binary Ninja wired into ChatGPT, with the MCP bridge and
 > – Is the MCP server running in the `bridge` environment?
 > – Is ngrok still active and pointing at the correct port?
 > – Did you include the `/mcp` suffix in the connector URL?
-> {: .prompt-tip }
+{: .prompt-tip }
 
 ---
 
