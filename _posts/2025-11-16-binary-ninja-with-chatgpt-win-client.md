@@ -7,9 +7,7 @@ description: Connect Binary Ninja to the ChatGPT desktop app via MCP and ngrok t
 media_subpath: /assets/img/2025-11-16-binary-ninja-with-chatgpt-win-client
 ---
 
-Using **native custom tools** in the ChatGPT desktop app is still a bit awkward: it doesn’t expose the full MCP feature set that local AI agents do, and the built-in connectors/plugins all run in the cloud.
-
-However, the desktop app is “just” a frontend for OpenAI’s GPT-5.1 Thinking model (standard vs. extended thinking). If we can connect a local MCP tool server as a **connector** to the ChatGPT app, we can:
+Using **native custom tools** in the ChatGPT desktop app is still a bit awkward: it doesn’t expose the full MCP feature set that local AI agents do, and the built-in connectors/plugins all run in the cloud. The desktop app is a frontend for OpenAI’s GPT-5.1 Thinking model (standard vs. extended thinking). If we can connect a local MCP tool server as a **connector** to the ChatGPT app, we can:
 
 - Reuse the compute you already pay for in your ChatGPT subscription,
 - Keep Binary Ninja running locally,
