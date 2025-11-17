@@ -74,7 +74,7 @@ On **Windows**, the path typically looks like:
 
 ```text
 C:\Users\{username}\AppData\Roaming\Binary Ninja\repositories\community\plugins\fosdickio_binary_ninja_mcp
-````
+```
 
 Inside that folder, open the **`bridge`** subfolder. All commands in the rest of this guide are run from there.
 
