@@ -1,7 +1,7 @@
 ---
 title: Use Binary Ninja with ChatGPT Desktop App
 date: 2025-11-16 18:00:00 -0500
-categories: [GEN_AI, TOOL]
+categories: [Tool]
 tags: [binary-ninja, reverse-engineering, gpt, openai, malware-analysis, binary]
 description: Connect Binary Ninja to the ChatGPT desktop app via MCP and ngrok to build an automated, low-cost workflow for AI-assisted reverse engineering.
 media_subpath: /assets/img/2025-11-16-binary-ninja-with-chatgpt-win-client
