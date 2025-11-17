@@ -7,13 +7,24 @@ description: Connect Binary Ninja to the ChatGPT desktop app via MCP and ngrok t
 media_subpath: /assets/img/2025-11-16-binary-ninja-with-chatgpt-win-client
 ---
 
-Using native custom tools in the ChatGPT desktop app is a bit tricky: it doesn't yet support the full MCP feature set that local AI agents do, and the built-in connectors/plugins run in the cloud.  
+Using **native custom tools** in the ChatGPT desktop app is still a bit awkward: it doesn’t expose the full MCP feature set that local AI agents do, and the built-in connectors/plugins all run in the cloud.
 
-However, since the desktop app is a frontend for OpenAI's GPT-5.1 Thinking model (standard vs extended thinking), if we can connect a local MCP/tool as a connector to the ChatGPT app, we can reuse the capabilities you already pay for in your ChatGPT subscription — with the nice desktop UI — and wire them directly into Binary Ninja.
+However, the desktop app is “just” a frontend for OpenAI’s GPT-5.1 Thinking model (standard vs. extended thinking). If we can connect a local MCP tool server as a **connector** to the ChatGPT app, we can:
 
-This post walks through how to connect Binary Ninja to the ChatGPT desktop app to build an automated, low-cost (assuming you already have ChatGPT Plus) workflow for AI-assisted reverse engineering.
+- Reuse the compute you already pay for in your ChatGPT subscription,
+- Keep Binary Ninja running locally,
+- And control it from a nice desktop UI.
+
+This post walks through how to connect **Binary Ninja** to the **ChatGPT desktop app** to build an automated, low-cost (assuming you already have ChatGPT Plus) workflow for AI-assisted reverse engineering.
+
+> These steps were tested on Windows, but the overall MCP / connector flow is the same on macOS and Linux. You mainly need to adjust paths and shell commands.
+{: .prompt-info }
+
+---
 
 ## Prerequisites
+
+You’ll need:
 
 - **ChatGPT desktop client (Windows/macOS)**  
   Version `1.2025.258` or later.
@@ -24,7 +35,10 @@ This post walks through how to connect Binary Ninja to the ChatGPT desktop app t
 - **Basic familiarity with:**
   - Python virtual environments
   - MCP concepts (tool servers over stdio/HTTP)
-  - Ngrok or similar HTTP tunneling tools
+  - ngrok or a similar HTTP tunneling tool
+
+> If you already have a preferred virtual-environment tool (e.g., `venv`, Poetry, Conda), you can use that instead of `uv`—just adapt the commands in this guide.
+{: .prompt-tip }
 
 ---
 
@@ -44,7 +58,7 @@ Open the binary you want to analyze, then click that indicator. It should change
 
 > `MCP: Running`
 
-This means the MCP bridge script is active inside Binary Ninja.
+This means the MCP bridge script is active inside Binary Ninja and ready to accept connections.
 
 ![Binary Ninja MCP plugin in plugin manager](image-20251116173708685.png)
 
@@ -56,15 +70,15 @@ This means the MCP bridge script is active inside Binary Ninja.
 
 Next, locate the plugin’s community folder.
 
-On **Windows**, the path should look like:
+On **Windows**, the path typically looks like:
 
 ```text
 C:\Users\{username}\AppData\Roaming\Binary Ninja\repositories\community\plugins\fosdickio_binary_ninja_mcp
-```
+````
 
-Inside that folder, find the **`bridge`** subfolder. All following commands are run from there.
+Inside that folder, open the **`bridge`** subfolder. All commands in the rest of this guide are run from there.
 
-It’s recommended to use **`uv`** (the Rust-based Python package manager) to manage a virtual environment:
+It’s convenient to use **`uv`** (the Rust-based Python package manager) to create an isolated environment:
 
 ```shell
 uv init
@@ -73,20 +87,23 @@ uv add -r .\requirements.txt
 
 This will:
 
-- Initialize a new Python project with an isolated environment.
-- Install the dependencies listed in `requirements.txt`.
+* Initialize a new Python project with an isolated environment.
+* Install the dependencies listed in `requirements.txt`.
 
-------
+> Keep the `bridge` environment dedicated to this plugin. Mixing unrelated packages into the same environment can make debugging MCP issues much harder later.
+> {: .prompt-warning }
+
+---
 
 ## Step 3 – Convert the bridge to a FastMCP HTTP server
 
-The original bridge script only supports **stdio** as an MCP transport, but the ChatGPT desktop app expects an HTTP-based MCP endpoint. So we’ll switch it to use **FastMCP** with `streamable-http` transport.
+The original bridge script only supports **stdio** as an MCP transport, but the ChatGPT desktop app expects an **HTTP-based** MCP endpoint. To fix that, we’ll switch it to **FastMCP** with the `streamable-http` transport.
 
 From the `bridge` folder, do the following.
 
 ### 3.1 – Install `fastmcp`
 
-Instead of relying on the MCP Python library’s built-in FastMCP, use the dedicated `fastmcp` package for better compatibility:
+Instead of relying on the MCP Python library’s built-in FastMCP, install the dedicated `fastmcp` package for better compatibility:
 
 ```shell
 uv add fastmcp
@@ -126,13 +143,11 @@ This exposes the MCP server over HTTP on `localhost:8050`.
 
 As of **2025-11-16**, the ChatGPT desktop app runs an internal validation pass (likely using a small model) to decide whether a connector is “safe.” If the connector fails that check, you might see:
 
-> ```
-> Connector is not safe
-> ```
+> `Connector is not safe`
 
 when trying to add it.
 
-A practical workaround (described in the OpenAI community thread) is to provide very explicit safety instructions in the MCP metadata:
+A practical workaround (described in an OpenAI community thread) is to provide very explicit safety instructions in the MCP metadata:
 
 Change:
 
@@ -160,14 +175,14 @@ You should see logs indicating that the MCP server is up and listening on the co
 
 ![FastMCP bridge running](image-20251116180038803.png)
 
-------
+---
 
 ## Step 4 – Expose the MCP server using ngrok
 
-The MCP server is currently running **locally**. For the ChatGPT **cloud** environment to reach it, we need to expose it via a reverse proxy. Here we’ll use **ngrok**.
+Right now the MCP server is running **locally**. For the ChatGPT **cloud** environment to reach it, we need to expose it via a reverse proxy. Here we’ll use **ngrok**.
 
 1. Sign up for an ngrok account (if you don’t already have one):
-    https://dashboard.ngrok.com/signup
+   [https://dashboard.ngrok.com/signup](https://dashboard.ngrok.com/signup)
 
 2. Install ngrok. On Windows, you can download it from the Microsoft Store or directly from their site.
 
@@ -193,7 +208,10 @@ https://your-random-subdomain.ngrok-free.app
 
 We’ll use this URL in the ChatGPT connector configuration.
 
-------
+> When ngrok is running, anything that can reach the public URL can talk to your MCP server. Only expose this from a trusted network, and avoid loading highly sensitive or proprietary binaries while experimenting.
+> {: .prompt-danger }
+
+---
 
 ## Step 5 – Create a custom connector in the ChatGPT desktop app
 
@@ -204,22 +222,22 @@ Open the **ChatGPT desktop app**.
 
 ![Enable developer mode in ChatGPT desktop](image-20251116180911413.png)
 
-1. Click the **Back** button, then click **Create** on the top-right to create a new connector.
+3. Click the **Back** button, then click **Create** in the top-right to create a new connector.
 
 Fill in the fields:
 
-- **Name**: e.g., `Binary Ninja MCP`
+* **Name**: e.g., `Binary Ninja MCP`
 
-- **Description**: e.g., `Use Binary Ninja analysis tools from ChatGPT`
+* **Description**: e.g., `Use Binary Ninja analysis tools from ChatGPT`
 
-- **Icon**: You can use the Binary Ninja icon from:
+* **Icon**: You can use the Binary Ninja icon from:
 
   ```text
   C:\Users\{username}\AppData\Local\Programs\Vector35\BinaryNinja
   ```
 
-- **MCP server URL**:
-   Use the HTTPS endpoint from ngrok **plus `/mcp`**. For example:
+* **MCP server URL**:
+  Use the HTTPS endpoint from ngrok **plus `/mcp`**. For example:
 
   ```text
   https://your-random-subdomain.ngrok-free.app/mcp
@@ -229,27 +247,37 @@ Fill in the fields:
 
 Save the connector.
 
-------
+---
 
 ## Step 6 – Use Binary Ninja from the ChatGPT desktop app
 
 Back in the ChatGPT desktop app, open a new chat:
 
-1. In the model selector, choose the **Binary Ninja connector** you just created (or select the GPT model and pick the connector under tools, depending on UI).
-2. Start chatting and issue a request that uses Binary Ninja (e.g., “Analyze the current function,” “Summarize cross-references to this address,” etc.).
+1. In the model selector, choose the **Binary Ninja connector** you just created (or pick a GPT model and enable the connector under **Tools**, depending on the UI).
+2. Start chatting and issue a request that uses Binary Ninja—for example:
+
+   * “Analyze the current function.”
+   * “Summarize cross-references to this address.”
+   * “Map out the call graph starting from the current function.”
 
 ![Using Binary Ninja connector from ChatGPT](image-20251116182608952.png)
 
 When ChatGPT calls a tool for the first time in a session, it will ask for permission:
 
-- Approve the tool call.
-- Optionally check **“Remember”** to auto-approve that tool for the rest of the session.
+* Approve the tool call.
+* Optionally check **“Remember”** to auto-approve that tool for the rest of the session.
 
 ![Tool permission prompt in ChatGPT desktop](image-20251116182849994.png)
 
 At this point, you have Binary Ninja wired into ChatGPT, with the MCP bridge and ngrok tunnel in between.
 
-------
+> If the connector appears but calls fail, double-check:
+> – Is the MCP server running in the `bridge` environment?
+> – Is ngrok still active and pointing at the correct port?
+> – Did you include the `/mcp` suffix in the connector URL?
+> {: .prompt-tip }
+
+---
 
 ## Step 7 – Example reverse-engineering prompt
 
@@ -349,19 +377,15 @@ Binary Ninja aids
 * Prefer HLIL; drop lower when needed for precision.
 ```
 
-You can tweak this further (e.g., add rules for malware-specific behaviors, a particular C2 family, or your internal naming conventions), but this should give ChatGPT enough structure to do serious, repeatable reverse-engineering passes with Binary Ninja.
+You can tweak this further—for example, adding rules for specific malware families, internal naming conventions, or your own note-taking style—but it should give ChatGPT enough structure to perform serious, repeatable reverse-engineering passes with Binary Ninja.
 
-------
+---
 
-That’s it — you now have a Binary-Ninja-to-ChatGPT workflow that’s:
+That’s it—you now have a Binary-Ninja-to-ChatGPT workflow that’s:
 
-- Local where it matters (Binary Ninja, your binaries),
-- Cloud where it’s convenient (ChatGPT’s reasoning),
-- And glued together with an MCP bridge plus ngrok.
+* Local where it matters (Binary Ninja, your binaries),
+* Cloud where it’s convenient (ChatGPT’s reasoning),
+* And glued together with an MCP bridge plus ngrok.
 
 Happy reversing!
 
-```
-:contentReference[oaicite:0]{index=0}
-::contentReference[oaicite:1]{index=1}
-```
