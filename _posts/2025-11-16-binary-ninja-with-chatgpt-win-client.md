@@ -147,7 +147,7 @@ As of **2025-11-16**, the ChatGPT desktop app runs an internal validation pass (
 
 when trying to add it.
 
-A practical workaround (described in an OpenAI community thread) is to provide very explicit safety instructions in the MCP metadata:
+A practical workaround (described in an OpenAI community ![thread](https://community.openai.com/t/mcp-connector-rejected-with-detail-connector-is-not-safe/1363006/3)) is to provide very explicit safety instructions in the MCP metadata:
 
 Change:
 
