@@ -3,7 +3,7 @@ title: 2025上半年银狐木马对抗手法POC
 date: 2025-12-15 18:00:00 -0500
 categories: [Research]
 tags: [malware, trojan, silver-fox, winos, apt, malware-analysis, poc]
-description: 列举了一些银狐木马常用对抗杀软/EDR手段以及代码实现.
+description: 列举了一些银狐木马常用对抗杀软/EDR手段以及代码实现。
 mermaid: true
 media_subpath: /assets/img/2025-12-15-silver-fox-poc-2025
 ---
