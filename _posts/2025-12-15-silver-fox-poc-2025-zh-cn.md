@@ -608,3 +608,36 @@ def queue_move_to_startup(p: Path, drive_label: str) -> None:
         new_list = list(existing) + [src, dst]
         winreg.SetValueEx(k, "PendingFileRenameOperations", 0, winreg.REG_MULTI_SZ, new_list)
 ```
+
+## 总结
+
+银狐木马（SilverFox）在 2025 年展现出的对抗技术演进，标志着黑产团伙在端点对抗领域的投入已达到准 APT 级别。从利用 WFP 和 WDAC 等系统原生机制“借刀杀人”禁用安全软件，到挖掘冷门 RPC 接口绕过Hook加驱，再到利用 BYOVD 技术直接在内核层通过漏洞驱动对抗 EDR，这些手法无不显示出攻击者对 Windows 操作系统底层机制的深刻理解。尤其值得注意的是，银狐将攻击行为伪装成合法的系统管理操作（如配置防火墙规则、应用控制策略、注册表文件操作等）。这种“白利用”的思路极大地提高了检测难度，传统的基于特征码或单一行为的防御手段已难以奏效。
+
+对于蓝队而言，这不仅意味着需要关注文件层面的威胁，更需要加强对系统配置变更、异常驱动加载以及合法进程异常行为的监控。攻防对抗是一场永无止境的博弈，深入研究这些前沿样本的实现细节，是提升防御体系韧性的必经之路。
+
+## 附录：卡饭安全论坛样本链接
+
+为了验证上述技术的可行性，我制作了一系列概念验证（POC）样本，并发布在卡饭安全论坛供研究交流。以下是相关帖子的链接：
+
+*   [自制 仿银狐 POC 1](https://bbs.kafan.cn/thread-2285537-1-1.html)
+*   [自制 仿银狐 POC 2](https://bbs.kafan.cn/thread-2285585-1-1.html)
+*   [自制 仿银狐 POC 3](https://bbs.kafan.cn/thread-2285726-1-1.html)
+*   [自制 仿银狐 POC 4](https://bbs.kafan.cn/thread-2285972-1-1.html)
+
+其中，**样本 4** 集成了本文提到的多种对抗技术，其完整执行流程如下：
+
+```python
+ST0_DECODE_PAYLOADS =           "Stage 0 - Decode payloads"
+ST1_PREPARE_RDI =               "Stage 1 - Prepare RDI"
+ST2_ADD_WFP_FILTERS =           "Stage 2 - Add WFP blocking filters - FwpmFilterAdd0"
+ST3_LOAD_BYOVD_RPC =            "Stage 3 - Load BYOVD - CreateSvcRpc"
+ST3_LOAD_BYOVD_RPC_SIGFLIP =    "Stage 3 - Load BYOVD - CreateSvcRpc (SigFlip)"
+ST3_LOAD_BYOVD_API =            "Stage 3 - Load BYOVD - CreateServiceW"
+ST3_LOAD_BYOVD_API_SIGFLIP =    "Stage 3 - Load BYOVD - CreateServiceW (SigFlip)"
+ST4_RUN_AV_KILLER =             "Stage 4 - Run AV killer - ZwTerminateProcess"
+ST5_INVISIBLE_AUTORUN =         "Stage 5 - Add Autorun - FileAssociations + DosDevices Redirect + PendingFileRenameOperations"
+ST6_RUN_RANSOMWARE =            "Stage 6 - Run Ransomware"
+ST7_ADD_WDAC_POLICY_P7B =       "Stage 7 - Add WDAC blocking policies - Direct"
+ST7_ADD_WDAC_POLICY_CITOOL =    "Stage 7 - Add WDAC blocking policies - CiTool"
+ST8_REBOOT =                    "Stage 8 - Reboot"
+```
