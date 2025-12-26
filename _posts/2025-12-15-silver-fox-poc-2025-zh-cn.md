@@ -47,7 +47,7 @@ Python 社区已经提供了现成的库：[PythonMemoryModule](https://github.c
 导入此库后，即可将任意 DLL/EXE 加载进 `python.exe` 宿主进程的内存中。
 
 > 经过本地测试，C/C++ 编译的 EXE 可以完美运行，但 .NET 程序无法正常工作。
-{: .prompt-tip }
+{: .prompt-warning }
 
 ```python
 import pythonmemorymodule
@@ -193,7 +193,7 @@ if (result == ERROR_SUCCESS) {
     ![alt text](3.png)
 
 > 至此，该驱动可以在开启了 HVCI (Hypervisor-Protected Code Integrity) 的最新版 Windows 11 机器上成功运行。
-{: .prompt-info }
+{: .prompt-tip }
 
 下面是 POC 的关键代码片段：
 
@@ -431,7 +431,7 @@ int InvokeCreateSvcRpcMain(char* pExecCmd)
 2024 年底，安全研究员 **Jonathan Beierle** 和 **Logan Goins** 发布了一篇名为 [Weaponizing WDAC - Killing the Dreams of EDR](https://beierle.win/2024-12-20-Weaponizing-WDAC-Killing-the-Dreams-of-EDR/) 的文章，详细描述了如何滥用 WDAC 机制来禁用杀毒软件和 EDR 的运行。
 
 > 这一攻击手法的核心关键点在于：**WDAC 策略在系统启动阶段的加载优先级高于 EDR 驱动程序**。
-{: .prompt-info }
+{: .prompt-danger }
 
 ### 攻击流程
 
