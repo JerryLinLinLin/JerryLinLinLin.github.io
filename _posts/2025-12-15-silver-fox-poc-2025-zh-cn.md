@@ -46,8 +46,8 @@ Python 社区已经提供了现成的库：[PythonMemoryModule](https://github.c
 
 导入此库后，即可将任意 DLL/EXE 加载进 `python.exe` 宿主进程的内存中。
 
-> [!NOTE]
 > 经过本地测试，C/C++ 编译的 EXE 可以完美运行，但 .NET 程序无法正常工作。
+{: .prompt-tip }
 
 ```python
 import pythonmemorymodule
@@ -76,8 +76,8 @@ pythonmemorymodule.MemoryModule(data=data)
 
 开源项目 [EDRSilencer](https://github.com/netero1010/EDRSilencer) 正是基于这一原理诞生的。该工具于 2023 年末发布，旨在针对 EDR/AV 进程设置 WFP 过滤器，从而屏蔽其与云端的通信，使其无法上报威胁信息。银狐木马在 2025 年的变种中也采用了完全相同的手段。
 
-> [!NOTE]
 > 为了规避检测，EDRSilencer 的作者自己实现了 `FwpmGetAppIdFromFileName0` 函数，避免了直接调用 `CreateFileW`，从而成功绕过了 Minifilter 的监控。
+{: .prompt-info }
 
 以下是基于 EDRSilencer 核心逻辑的代码片段，展示了如何配置 WFP 过滤器以阻断特定进程的流量：
 
@@ -178,6 +178,8 @@ if (result == ERROR_SUCCESS) {
 
 **漏洞解析：**
 
+[参考文章](https://medium.com/@jehadbudagga/researching-an-apt-attack-and-weaponizing-it-56daabee11c9) 
+
 1.  `IOCTL_REGISTER_PROCESS` 存在严重逻辑缺陷，任何进程都可以将自己的 PID 注册到白名单中，**且无任何权限校验**。
 
     ![alt text](1.png)
@@ -190,8 +192,8 @@ if (result == ERROR_SUCCESS) {
 
     ![alt text](3.png)
 
-> [!NOTE]
 > 至此，该驱动可以在开启了 HVCI (Hypervisor-Protected Code Integrity) 的最新版 Windows 11 机器上成功运行。
+{: .prompt-info }
 
 下面是 POC 的关键代码片段：
 
@@ -270,8 +272,8 @@ Usage of gSigFlip.exe:
 
 其核心逻辑在于**直接进行 RPC 通信**，从而绕过高层 Win32 API。
 
-> [!NOTE]
 > 通常，EDR/AV 产品会 Hook `OpenSCManager()` 或 `CreateService()` 等标准 API 来监控服务创建行为。而 CreateSvcRpc 不调用这些 API，而是通过命名管道直接与 SCM 的 RPC 接口通信，手工构造 DCE/RPC 协议数据包。这种方式可以有效避开基于 API Hook 的检测机制。
+{: .prompt-info }
 
 ### RPC 协议实现细节
 
@@ -428,8 +430,8 @@ int InvokeCreateSvcRpcMain(char* pExecCmd)
 
 2024 年底，安全研究员 **Jonathan Beierle** 和 **Logan Goins** 发布了一篇名为 [Weaponizing WDAC - Killing the Dreams of EDR](https://beierle.win/2024-12-20-Weaponizing-WDAC-Killing-the-Dreams-of-EDR/) 的文章，详细描述了如何滥用 WDAC 机制来禁用杀毒软件和 EDR 的运行。
 
-> [!NOTE]
 > 这一攻击手法的核心关键点在于：**WDAC 策略在系统启动阶段的加载优先级高于 EDR 驱动程序**。
+{: .prompt-info }
 
 ### 攻击流程
 
@@ -503,13 +505,13 @@ flowchart TD
 
 3.  通过向 `Session Manager` 下的 `DOS Devices` 键写入一个新值，将一个未被使用的盘符（如 `X:`）映射到系统的公共开始菜单 `Programs` 目录。
     
-    > [!NOTE]
     > 这个映射不会立即生效，而是在下次系统启动时由会话管理器（SMSS）处理。
+    {: .prompt-info }
 
 4.  攻击者将一对路径写入 `PendingFileRenameOperations` 注册表值。源路径是之前创建的那个带随机扩展名的文件，目标路径则使用刚才映射的虚拟盘符加上 `Startup` 子目录（例如 `X:\Startup\reboot.qmtk`）。
     
-    > [!TIP]
     > 这个注册表值专门用于记录需要在重启时执行的文件操作（常用于 Windows 更新或驱动安装）。
+    {: .prompt-info }
 
 ### 重启后的执行逻辑
 
@@ -628,7 +630,7 @@ def queue_move_to_startup(p: Path, drive_label: str) -> None:
 
 银狐木马（SilverFox）在 2025 年展现出的对抗技术演进，标志着黑产团伙在端点对抗领域的投入已达到准 APT 级别。从利用 WFP 和 WDAC 等系统原生机制“借刀杀人”禁用安全软件，到挖掘冷门 RPC 接口绕过Hook加驱，再到利用 BYOVD 技术直接在内核层通过漏洞驱动对抗 EDR，这些手法无不显示出攻击者对 Windows 操作系统底层机制的深刻理解。尤其值得注意的是，银狐将攻击行为伪装成合法的系统管理操作（如配置防火墙规则、应用控制策略、注册表文件操作等）。这种“白利用”的思路极大地提高了检测难度，传统的基于特征码或单一行为的防御手段已难以奏效。
 
-> [!NOTE]
+{: .prompt-info }
 > 对于蓝队而言，这不仅意味着需要关注文件层面的威胁，更需要加强对系统配置变更、异常驱动加载以及合法进程异常行为的监控。攻防对抗是一场永无止境的博弈，深入研究这些前沿样本的实现细节，是提升防御体系韧性的必经之路。
 
 ## 附录：卡饭安全论坛样本链接
