@@ -659,3 +659,18 @@ ST7_ADD_WDAC_POLICY_P7B =       "Stage 7 - Add WDAC blocking policies - Direct"
 ST7_ADD_WDAC_POLICY_CITOOL =    "Stage 7 - Add WDAC blocking policies - CiTool"
 ST8_REBOOT =                    "Stage 8 - Reboot"
 ```
+
+## Reference
+
+*   [PythonMemoryModule](https://github.com/naksyn/PythonMemoryModule)
+*   [EDRSilencer](https://github.com/netero1010/EDRSilencer)
+*   [LOLDrivers](https://www.loldrivers.io/)
+*   [Check Point 报告](https://research.checkpoint.com/2025/silver-fox-apt-vulnerable-drivers/)
+*   [WatchDogKiller](https://github.com/j3h4ck/WatchDogKiller)
+*   [Researching an APT attack and weaponizing it](https://medium.com/@jehadbudagga/researching-an-apt-attack-and-weaponizing-it-56daabee11c9)
+*   [gSigFlip](https://github.com/akkuman/gSigFlip)
+*   [SspiUacBypass](https://github.com/antonioCoco/SspiUacBypass/blob/main/CreateSvcRpc.cpp)
+*   [火绒安全报告](https://www.huorong.cn/document/tech/vir_report/1846)
+*   [Weaponizing WDAC - Killing the Dreams of EDR](https://beierle.win/2024-12-20-Weaponizing-WDAC-Killing-the-Dreams-of-EDR/)
+*   [App Control Policy Wizard](https://webapp-wdac-wizard.azurewebsites.net)
+*   [腾讯安全分析报告](https://www.freebuf.com/articles/vuls/438775.html)
