@@ -450,33 +450,33 @@ int InvokeCreateSvcRpcMain(char* pExecCmd)
 
 ```mermaid
 flowchart TD
-    subgraph Init [首次执行（需管理员权限）]
+    subgraph Init ["首次执行（需管理员权限）"]
         direction TB
-        A[1. 创建 reboot.xxxx 文件]
-        B[2. 注册 .xxxx → sf-demo 关联]
-        C[3. sf-demo\shell\open\command → 本地 python.exe]
-        D[4. 创建 X: → Common Startup 的 DOS Device 映射]
-        E[5. 添加 PendingFileRenameOperations: 文件 → X:\Startup]
+        A["1. 创建 reboot.xxxx 文件"]
+        B["2. 注册 .xxxx → sf-demo 关联"]
+        C["3. sf-demo\shell\open\command → 本地 python.exe"]
+        D["4. 创建 X: → Common Startup 的 DOS Device 映射"]
+        E["5. 添加 PendingFileRenameOperations: 文件 → X:\Startup"]
         A --> B --> C --> D --> E
     end
 
     Init -->|系统重启| SMSS
 
-    subgraph SMSS [SMSS.exe 处理阶段]
+    subgraph SMSS ["SMSS.exe 处理阶段"]
         direction TB
-        F[1. DOS Devices 映射生效 (X: 指向启动目录)]
-        G[2. PendingFileRenameOperations 执行文件移动]
-        H[3. reboot.xxxx 被移动到公共启动目录]
+        F["1. DOS Devices 映射生效 (X: 指向启动目录)"]
+        G["2. PendingFileRenameOperations 执行文件移动"]
+        H["3. reboot.xxxx 被移动到公共启动目录"]
         F --> G --> H
     end
 
     SMSS -->|用户登录| Trigger
 
-    subgraph Trigger [自启动触发]
+    subgraph Trigger ["自启动触发"]
         direction TB
-        I[Explorer 处理启动目录，打开 reboot.xxxx]
-        J[文件关联触发 python.exe reboot.xxxx]
-        K[恶意代码执行]
+        I["Explorer 处理启动目录，打开 reboot.xxxx"]
+        J["文件关联触发 python.exe reboot.xxxx"]
+        K["恶意代码执行"]
         I --> J --> K
     end
 ```
