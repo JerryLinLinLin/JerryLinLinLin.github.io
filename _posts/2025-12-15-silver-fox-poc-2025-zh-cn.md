@@ -446,7 +446,7 @@ int InvokeCreateSvcRpcMain(char* pExecCmd)
 
 为了验证这一机制，我使用 Python 编写了一个快速的概念验证（POC）。
 
-### 攻击流程图
+### 流程图
 
 ```mermaid
 flowchart TD
