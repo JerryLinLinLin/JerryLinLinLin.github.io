@@ -660,7 +660,7 @@ ST7_ADD_WDAC_POLICY_CITOOL =    "Stage 7 - Add WDAC blocking policies - CiTool"
 ST8_REBOOT =                    "Stage 8 - Reboot"
 ```
 
-## Reference
+## References
 
 *   [PythonMemoryModule](https://github.com/naksyn/PythonMemoryModule)
 *   [EDRSilencer](https://github.com/netero1010/EDRSilencer)
