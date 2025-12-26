@@ -4,4 +4,16 @@ icon: fas fa-info-circle
 order: 4
 ---
 
-Cybersecurity enthusiast. Focus on malware research, endpoint security assessment, and reverse engineering.
+业余安全研究员
+
+爱好
+
+- 睡觉
+- 看蜡笔小新
+
+Naïve Security Researcher
+
+Hobbies
+
+- Sleep
+- Watching Crayon Shin-chan
