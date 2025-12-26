@@ -410,3 +410,32 @@ int InvokeCreateSvcRpcMain(char* pExecCmd)
 ```
 
 根据[火绒安全的报告](https://www.huorong.cn/document/tech/vir_report/1846)，银狐木马正是利用此技术来加载 BYOVD 驱动，从而规避了常规的行为监控。
+
+## WDAC 策略滥用
+
+**WDAC (Windows Defender Application Control)** 是 Windows 10 及更高版本中默认启用的应用控制机制。它旨在控制哪些代码（包括用户态应用程序和内核态驱动程序）被允许在系统上执行。
+
+2024 年底，安全研究员 **Jonathan Beierle** 和 **Logan Goins** 发布了一篇名为 [Weaponizing WDAC - Killing the Dreams of EDR](https://beierle.win/2024-12-20-Weaponizing-WDAC-Killing-the-Dreams-of-EDR/) 的文章，详细描述了如何滥用 WDAC 机制来禁用杀毒软件和 EDR 的运行。
+
+这一攻击手法的核心关键点在于：**WDAC 策略在系统启动阶段的加载优先级高于 EDR 驱动程序**。
+
+### 攻击流程
+
+1.  **制作恶意 WDAC 策略 (`SiPolicy.p7b`)**
+    攻击者可以使用微软官方工具 [App Control Policy Wizard](https://webapp-wdac-wizard.azurewebsites.net) 创建自定义策略：
+    *   **阻止**：列入 EDR 相关的 EXE、DLL 及驱动程序。
+    *   **允许**：放行特定路径（如 `C:\Users\Public\*`），供攻击者工具运行。
+
+2.  **部署策略文件**
+    将生成的 `SiPolicy.p7b` 文件放置于 `C:\Windows\System32\CodeIntegrity\` 目录下（此步需要管理员权限）。
+
+3.  **重启目标机器**
+    使策略生效。
+
+4.  **系统启动时的执行顺序**
+    *   WDAC 策略率先加载并生效。
+    *   EDR 的驱动或服务尝试启动，但因策略限制被阻止加载。
+    *   攻击者放置在白名单路径下的恶意工具则可以正常运行，且不受 EDR 监控。
+
+根据腾讯安全的[分析报告](https://www.freebuf.com/articles/vuls/438775.html)，银狐木马在实战中采用了完全相同的对抗手段，通过滥用 WDAC 策略来禁用目标机器上的安全防护软件。
+
