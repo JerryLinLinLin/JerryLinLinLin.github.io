@@ -502,6 +502,7 @@ flowchart TD
 
 2.  在注册表 `HKEY_CLASSES_ROOT` 下创建以这个随机扩展名为名的键，将其默认值指向一个自定义的程序标识符 `sf-demo`。随后，为 `sf-demo` 创建完整的 `shell\open\command` 结构，命令内容指向攻击者放置在脚本同目录下的 `python.exe`，并将文件路径作为参数传入。
     > **目的**：确保系统知道遇到这个随机扩展名的文件时，应该使用指定的 Python 解释器打开。
+    {: .prompt-info }
 
 3.  通过向 `Session Manager` 下的 `DOS Devices` 键写入一个新值，将一个未被使用的盘符（如 `X:`）映射到系统的公共开始菜单 `Programs` 目录。
     
