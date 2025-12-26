@@ -167,7 +167,7 @@ if (result == ERROR_SUCCESS) {
 
 ### wamsdk.sys
 
-根据 Check Point 在 2025 年 8 月发布的[报告](https://research.checkpoint.com/2025/silver-fox-apt-vulnerable-drivers/)，银狐利用了 **WatchDog Antimalware** 软件中的 `wamsdk.sys` 驱动，通过调用 `ZwTerminateProcess` 来强制结束 EDR/杀软进程。两个月后，安全研究员 j3h4ck 在 GitHub 上开源了此驱动的 POC：[WatchDogKiller](https://github.com/j3h4ck/WatchDogKiller)。截至 10 月份，此漏洞驱动尚未被 LOLDrivers 和微软的漏洞驱动阻止列表（Microsoft Vulnerable Driver Blocklist）收录。
+根据 Check Point 在 2025 年 8 月发布的[报告](https://research.checkpoint.com/2025/silver-fox-apt-vulnerable-drivers/)，银狐利用了 **WatchDog Antimalware** 软件中的 `wamsdk.sys` (名称也可为`amsdk.sys`) 驱动，通过调用 `ZwTerminateProcess` 来强制结束 EDR/杀软进程。两个月后，安全研究员 j3h4ck 在 GitHub 上开源了此驱动的 POC：[WatchDogKiller](https://github.com/j3h4ck/WatchDogKiller)。截至 10 月份，此漏洞驱动尚未被 LOLDrivers 和微软的漏洞驱动阻止列表（Microsoft Vulnerable Driver Blocklist）收录。
 
 `wamsdk.sys` 暴露了两个具有严重安全缺陷的 IOCTL：
 
