@@ -3,7 +3,7 @@ title: 再谈杀软性能测试
 date: 2026-04-25 18:00:00 -0500
 categories: [Research]
 tags: [antivirus, edr, endpoint security, performance, antimalware]
-description: 用编译工作负载和 API 级微基准量化 16 款杀软的性能开销。
+description: 测试杀软对编译以及不同系统调用的性能影响
 math: true
 mermaid: true
 media_subpath: /assets/img/2026-04-25-av-perf-test-zh-cn
